@@ -135,6 +135,15 @@ class App extends React.Component<
       })
     }));
   };
+  public deletePlant = (plant: IPlant) => {
+    if (!window.confirm("Sure you wanna delete this?")) {
+      return;
+    }
+    this.setState(state => ({
+      ...state,
+      plants: state.plants.filter(({ id }) => id !== plant.id)
+    }));
+  };
   public updateName = (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
 
@@ -177,7 +186,12 @@ class App extends React.Component<
                   beforeUpload={() => false}
                 >
                   <Icon type="camera" theme="filled" />
-                </Upload>
+                </Upload>,
+                <Icon
+                  onClick={() => this.deletePlant(plant)}
+                  key="delete"
+                  type="delete"
+                />
               ]}
               cover={
                 plant.pictures.length === 0 ? (
