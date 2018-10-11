@@ -9,6 +9,8 @@ import AntCard from "antd/lib/card";
 import * as localForage from "localforage";
 import "./App.css";
 
+const INSTAGRAM_IMAGE_WIDTH = 1080;
+
 localForage.config({
   driver: localForage.INDEXEDDB,
   name: "grow",
@@ -37,6 +39,55 @@ const Cards = styled.div`
     margin-bottom: 2em;
   }
 `;
+
+function resizeImage(image: string, width: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  const img = new Image();
+
+  return new Promise<string>((resolve, reject) => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return reject(new Error("Image resize failed"));
+    }
+    img.onload = () => {
+      // set size proportional to image
+      canvas.height = canvas.width * (img.height / img.width);
+
+      // step 1 - resize to 50%
+      const oc = document.createElement("canvas");
+      const octx = oc.getContext("2d");
+
+      if (!octx) {
+        return reject(new Error("Image resize failed"));
+      }
+
+      oc.width = img.width * 0.5;
+      oc.height = img.height * 0.5;
+      octx.drawImage(img, 0, 0, oc.width, oc.height);
+
+      // step 2
+      octx.drawImage(oc, 0, 0, oc.width * 0.5, oc.height * 0.5);
+
+      // step 3, resize to final size
+      ctx.drawImage(
+        oc,
+        0,
+        0,
+        oc.width * 0.5,
+        oc.height * 0.5,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      return resolve(canvas.toDataURL());
+    };
+    img.src = image;
+    img.onerror = reject;
+  });
+}
 
 function getBase64(file: File) {
   const reader = new FileReader();
@@ -105,8 +156,16 @@ class App extends React.Component<
     const base64Images = await Promise.all(
       upload.fileList
         .filter(file => file.originFileObj)
-        .map((file: UploadFile) => getBase64(file.originFileObj as File))
-    );
+        .map(async (file: UploadFile) =>
+          resizeImage(
+            await getBase64(file.originFileObj as File),
+            INSTAGRAM_IMAGE_WIDTH
+          )
+        )
+    ).catch(err => {
+      console.error(err);
+      throw err;
+    });
 
     this.setState(state => ({
       ...state,
@@ -164,7 +223,7 @@ class App extends React.Component<
           <Input
             value={this.state.currentName}
             onChange={this.updateName}
-            placeholder="Name for your new plant"
+            placeholder="Name your new plant"
           />
           <AntButton
             icon="plus"
