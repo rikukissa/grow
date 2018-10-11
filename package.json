@@ -8,6 +8,7 @@
     "gh-pages": "^2.0.1",
     "grommet": "v2.0.0-beta.6",
     "grommet-icons": "^3.0.0",
+    "localforage": "^1.7.2",
     "prettier": "^1.14.3",
     "react": "^16.5.2",
     "react-dom": "^16.5.2",

@@ -6,8 +6,15 @@ import AntIcon from "antd/lib/icon";
 import AntButton from "antd/lib/button";
 import Input from "antd/lib/input";
 import AntCard from "antd/lib/card";
-
+import * as localForage from "localforage";
 import "./App.css";
+
+localForage.config({
+  driver: localForage.INDEXEDDB,
+  name: "grow",
+  version: 1.0,
+  storeName: "state"
+});
 
 const Icon = styled(AntIcon)`
   font-size: 25px;
@@ -87,6 +94,13 @@ class App extends React.Component<
     currentName: ""
   };
 
+  public async componentDidMount() {
+    const storedPlants = JSON.parse(
+      (await localForage.getItem<string>("plants")) || "[]"
+    );
+    this.setState(state => ({ ...state, plants: storedPlants }));
+  }
+
   public async fileUploaded(selectedPlant: IPlant, upload: UploadChangeParam) {
     const base64Images = await Promise.all(
       upload.fileList
@@ -129,6 +143,11 @@ class App extends React.Component<
       currentName: value
     }));
   };
+  public componentDidUpdate() {
+    localForage
+      .setItem("plants", JSON.stringify(this.state.plants))
+      .catch(err => alert(err.message));
+  }
   public render() {
     return (
       <div>
