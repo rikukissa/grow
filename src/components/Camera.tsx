@@ -2,6 +2,7 @@ import * as React from "react";
 import * as Webcam from "react-webcam";
 import useSize from "react-use/esm/useSize";
 import styled from "@emotion/styled";
+import { isMobile } from "is-mobile";
 
 const Container = styled.div`
   position: relative;
@@ -16,8 +17,13 @@ const Overlay = styled.div`
 `;
 
 const constraints = {
-  // facingMode: { exact: "environment" }
+  facingMode:
+    isMobile() && process.env.NODE_ENV === "production"
+      ? { exact: "environment" }
+      : "user"
 };
+
+console.log(isMobile());
 
 type Props = React.PropsWithChildren<{}>;
 
