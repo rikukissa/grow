@@ -17,8 +17,9 @@ const Overlay = styled.div`
 `;
 
 const constraints = {
+  aspectRatio: 1,
   facingMode:
-    isMobile() && process.env.NODE_ENV === "production"
+    isMobile() && !document.location.host.startsWith("localhost")
       ? { exact: "environment" }
       : "user"
 };
@@ -29,22 +30,26 @@ export const Camera = React.forwardRef<any, Props>(function(
   props: React.PropsWithChildren<{}>,
   ref
 ) {
-  const [sized] = useSize(({ width }) => (
-    <Container>
-      <Webcam
-        width={width}
-        height={width}
-        audio={false}
-        ref={ref}
-        videoConstraints={{
-          ...constraints,
-          width: width,
-          height: width
-        }}
-      />
-      <Overlay>{props.children}</Overlay>
-    </Container>
-  ));
+  const [sized] = useSize(({ width }) => {
+    console.log(ref);
+
+    return (
+      <Container>
+        <Webcam
+          width={width}
+          height={width}
+          audio={false}
+          style={{ display: "block" }}
+          ref={ref}
+          screenshotQuality={1}
+          videoConstraints={{
+            ...constraints
+          }}
+        />
+        <Overlay>{props.children}</Overlay>
+      </Container>
+    );
+  });
 
   return sized;
 });
