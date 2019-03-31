@@ -1,15 +1,12 @@
-import Upload, { UploadChangeParam } from "antd/lib/upload";
 import * as React from "react";
-import styled from "styled-components";
-import { UploadFile } from "antd/lib/upload/interface";
+import styled from "@emotion/styled";
 import AntIcon from "antd/lib/icon";
 import AntButton from "antd/lib/button";
 import Input from "antd/lib/input";
 import AntCard from "antd/lib/card";
 import * as localForage from "localforage";
 import "./App.css";
-
-const INSTAGRAM_IMAGE_WIDTH = 1080;
+import { Camera } from "./components/Camera";
 
 localForage.config({
   driver: localForage.INDEXEDDB,
@@ -40,70 +37,6 @@ const Cards = styled.div`
   }
 `;
 
-function resizeImage(image: string, width: number) {
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  const img = new Image();
-
-  return new Promise<string>((resolve, reject) => {
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return reject(new Error("Image resize failed"));
-    }
-    img.onload = () => {
-      // set size proportional to image
-      canvas.height = canvas.width * (img.height / img.width);
-
-      // step 1 - resize to 50%
-      const oc = document.createElement("canvas");
-      const octx = oc.getContext("2d");
-
-      if (!octx) {
-        return reject(new Error("Image resize failed"));
-      }
-
-      oc.width = img.width * 0.5;
-      oc.height = img.height * 0.5;
-      octx.drawImage(img, 0, 0, oc.width, oc.height);
-
-      // step 2
-      octx.drawImage(oc, 0, 0, oc.width * 0.5, oc.height * 0.5);
-
-      // step 3, resize to final size
-      ctx.drawImage(
-        oc,
-        0,
-        0,
-        oc.width * 0.5,
-        oc.height * 0.5,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      );
-
-      return resolve(canvas.toDataURL());
-    };
-    img.src = image;
-    img.onerror = reject;
-  });
-}
-
-function getBase64(file: File) {
-  const reader = new FileReader();
-  reader.readAsDataURL(file);
-  return new Promise<string>((resolve, reject) => {
-    reader.onload = () => {
-      if (!reader.result) {
-        reject(new Error("No data"));
-        return;
-      }
-      resolve(reader.result.toString());
-    };
-    reader.onerror = reject;
-  });
-}
-
 interface IPicture {
   takenAt: Date;
   data: string;
@@ -115,157 +48,207 @@ interface IPlant {
   pictures: IPicture[];
 }
 
-class Rotator extends React.Component<
-  { pictures: IPicture[] },
-  { tick: number }
-> {
-  public state = {
-    tick: 0
-  };
-  public componentDidMount() {
-    setInterval(
-      () => this.setState(state => ({ ...state, tick: state.tick + 1 })),
-      1000
-    );
+function Rotator(props: { pictures: IPicture[] }) {
+  const [tick, setTick] = React.useState(0);
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => setTick(tick + 1), 1000);
+    return () => {
+      window.clearInterval(interval);
+    };
+  });
+  const current = props.pictures[tick % props.pictures.length];
+
+  if (props.pictures.length === 0) {
+    return <div>No pictures yet!</div>;
   }
-  public render() {
-    const current = this.props.pictures[
-      this.state.tick % this.props.pictures.length
-    ];
-    return <img src={current.data} />;
-  }
+
+  return <img src={current.data} />;
 }
 
-class App extends React.Component<
-  {},
-  { plants: IPlant[]; currentName: string }
-> {
-  public state = {
-    plants: [],
-    currentName: ""
+const CameraOverlay = styled.div`
+  width: 100%;
+  height: 100%;
+  position: relative;
+`;
+
+const CameraOverlayControls = styled.div`
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`;
+
+const CameraButton = styled.button`
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+`;
+
+const CameraLastShot = styled.img`
+  opacity: 0.4;
+`;
+
+export function App() {
+  const [plants, setPlants] = React.useState<IPlant[]>([]);
+  const [selectedPlantId, setSelectedPlantId] = React.useState<number | null>(
+    null
+  );
+  const [currentName, setCurrentName] = React.useState("");
+
+  const createPlant = () => {
+    const newPlant = {
+      id: Date.now(),
+      name: currentName,
+      pictures: []
+    };
+    const newPlants = plants.concat(newPlant);
+    setPlants(newPlants);
+
+    if (plants.length === 0) {
+      setSelectedPlantId(newPlant.id);
+    }
   };
 
-  public async componentDidMount() {
-    const storedPlants = JSON.parse(
-      (await localForage.getItem<string>("plants")) || "[]"
-    );
-    this.setState(state => ({ ...state, plants: storedPlants }));
-  }
-
-  public async fileUploaded(selectedPlant: IPlant, upload: UploadChangeParam) {
-    const base64Images = await Promise.all(
-      upload.fileList
-        .filter(file => file.originFileObj)
-        .map(async (file: UploadFile) =>
-          resizeImage(
-            await getBase64(file.originFileObj as File),
-            INSTAGRAM_IMAGE_WIDTH
-          )
-        )
-    ).catch(err => {
-      console.error(err);
-      throw err;
-    });
-
-    this.setState(state => ({
-      ...state,
-      plants: state.plants.map(plant => {
-        if (plant.id !== selectedPlant.id) {
-          return plant;
-        }
-        return {
-          ...plant,
-          pictures: plant.pictures.concat(
-            base64Images.map(data => ({ data, takenAt: new Date() }))
-          )
-        };
-      })
-    }));
-  }
-
-  public createPlant = () => {
-    this.setState(state => ({
-      ...state,
-      currentName: "",
-      plants: state.plants.concat({
-        id: Date.now(),
-        name: state.currentName,
-        pictures: []
-      })
-    }));
-  };
-  public deletePlant = (plant: IPlant) => {
+  const deletePlant = (plant: IPlant) => {
     if (!window.confirm("Sure you wanna delete this?")) {
       return;
     }
-    this.setState(state => ({
-      ...state,
-      plants: state.plants.filter(({ id }) => id !== plant.id)
-    }));
+    const newPlants = plants.filter(({ id }) => id !== plant.id);
+    setPlants(newPlants);
   };
-  public updateName = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value;
 
-    this.setState(state => ({
-      ...state,
-      currentName: value
+  const updatePlant = (plantId: number, updater: (plant: IPlant) => IPlant) => {
+    setPlants(
+      plants.map(plant => {
+        if (plant.id === plantId) {
+          return updater(plant);
+        }
+        return plant;
+      })
+    );
+  };
+
+  const updateName = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value;
+    setCurrentName(value);
+  };
+
+  React.useEffect(() => {
+    async function getStoredPlants() {
+      const storedPlants = JSON.parse(
+        (await localForage.getItem<string>("plants")) || "[]"
+      );
+
+      setPlants(storedPlants);
+    }
+    getStoredPlants();
+  }, []);
+
+  React.useEffect(
+    () => {
+      console.log("Storing plants", plants);
+
+      localForage
+        .setItem("plants", JSON.stringify(plants))
+        .catch(err => alert(err.message));
+    },
+    [plants]
+  );
+
+  const camera = React.useRef<any>();
+
+  const takePicture = () => {
+    if (!camera.current) {
+      return;
+    }
+
+    const screenshot: string = camera.current.getScreenshot();
+
+    updatePlant(selectedPlantId as number, plant => ({
+      ...plant,
+      pictures: plant.pictures.concat({
+        takenAt: new Date(),
+        data: screenshot
+      })
     }));
   };
-  public componentDidUpdate() {
-    localForage
-      .setItem("plants", JSON.stringify(this.state.plants))
-      .catch(err => alert(err.message));
+
+  function getLastPicture(plantId: number) {
+    const plantOrNull = plants.find(({ id }) => id === plantId);
+    if (!plantOrNull) {
+      return null;
+    }
+
+    return plantOrNull.pictures[plantOrNull.pictures.length - 1];
   }
-  public render() {
-    return (
-      <div>
-        <Header>
-          <Input
-            value={this.state.currentName}
-            onChange={this.updateName}
-            placeholder="Name your new plant"
-          />
-          <AntButton
-            icon="plus"
-            disabled={this.state.currentName === ""}
-            onClick={this.createPlant}
-          />
-        </Header>
-        <Cards>
-          {this.state.plants.map((plant: IPlant) => (
+
+  return (
+    <div>
+      <Cards>
+        {plants.map((plant: IPlant) => {
+          const isSelected = selectedPlantId === plant.id;
+          return (
             <Card
               key={plant.id}
               actions={[
-                <Upload
-                  key="camera"
-                  showUploadList={false}
-                  onChange={(upload: UploadChangeParam) =>
-                    this.fileUploaded(plant, upload)
-                  }
-                  beforeUpload={() => false}
-                >
-                  <Icon type="camera" theme="filled" />
-                </Upload>,
                 <Icon
-                  onClick={() => this.deletePlant(plant)}
+                  onClick={() => deletePlant(plant)}
                   key="delete"
                   type="delete"
                 />
               ]}
               cover={
-                plant.pictures.length === 0 ? (
-                  <h1>No pictures yet!</h1>
+                isSelected ? (
+                  <Camera ref={camera}>
+                    <CameraOverlay>
+                      {(() => {
+                        const lastPicture = getLastPicture(plant.id);
+
+                        if (!lastPicture) {
+                          return null;
+                        }
+
+                        return <CameraLastShot src={lastPicture.data} />;
+                      })()}
+                      <CameraOverlayControls>
+                        <CameraButton onClick={takePicture}>snap</CameraButton>
+                      </CameraOverlayControls>
+                    </CameraOverlay>
+                  </Camera>
                 ) : (
                   <Rotator pictures={plant.pictures} />
                 )
               }
-              title={plant.name}
+              title={
+                <div
+                  onClick={() =>
+                    isSelected
+                      ? setSelectedPlantId(null)
+                      : setSelectedPlantId(plant.id)
+                  }
+                >
+                  {plant.name} {isSelected ? "(selected)" : ""}
+                </div>
+              }
             />
-          ))}
-        </Cards>
-      </div>
-    );
-  }
+          );
+        })}
+      </Cards>
+      <Header>
+        <Input
+          value={currentName}
+          onChange={updateName}
+          placeholder="Name your new plant"
+        />
+        <AntButton
+          icon="plus"
+          disabled={currentName === ""}
+          onClick={createPlant}
+        />
+      </Header>
+    </div>
+  );
 }
-
-export default App;
