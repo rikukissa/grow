@@ -2,12 +2,11 @@
   "name": "pwa-sample-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://rikukissa.github.io/grow",
+  "homepage": "https://eloquent-brattain-027449.netlify.com/",
   "dependencies": {
     "@emotion/core": "^10.0.10",
     "@emotion/styled": "^10.0.10",
     "antd": "^3.15.2",
-    "gh-pages": "^2.0.1",
     "grommet": "2.6.5",
     "grommet-icons": "^4.2.0",
     "is-mobile": "^2.0.0",
@@ -23,8 +22,7 @@
     "start": "BROWSER=none rescripts start",
     "build": "rescripts build",
     "test": "rescripts test --env=jsdom",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "predeploy": "npm run build"
   },
   "devDependencies": {
     "@rescripts/cli": "^0.0.10",
