@@ -23,8 +23,6 @@ const constraints = {
       : "user"
 };
 
-console.log(isMobile());
-
 type Props = React.PropsWithChildren<{}>;
 
 export const Camera = React.forwardRef<any, Props>(function(
