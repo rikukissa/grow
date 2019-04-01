@@ -86,12 +86,19 @@ const CameraOverlayControls = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 1em;
 `;
 
 const CameraButton = styled.button`
-  width: 50px;
-  height: 50px;
-  border-radius: 25px;
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background: tomato;
+  border: 2px solid #fff;
+  color: #fff;
+  text-align: center;
+  font-weight: bold;
+  padding: 0;
 `;
 
 const CameraLastShot = styled.img`
@@ -218,7 +225,7 @@ export function App() {
                         return <CameraLastShot src={lastPicture.data} />;
                       })()}
                       <CameraOverlayControls>
-                        <CameraButton onClick={takePicture}>snap</CameraButton>
+                        <CameraButton onClick={takePicture}>SNAP</CameraButton>
                       </CameraOverlayControls>
                     </CameraOverlay>
                   </Camera>
