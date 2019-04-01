@@ -33,6 +33,7 @@ const Card = styled(AntCard)``;
 
 const Cards = styled.div`
   ${Card} {
+    border-width: 0;
     margin-bottom: 2em;
   }
 `;
@@ -154,16 +155,13 @@ export function App() {
     getStoredPlants();
   }, []);
 
-  React.useEffect(
-    () => {
-      console.log("Storing plants", plants);
+  React.useEffect(() => {
+    console.log("Storing plants", plants);
 
-      localForage
-        .setItem("plants", JSON.stringify(plants))
-        .catch(err => alert(err.message));
-    },
-    [plants]
-  );
+    localForage
+      .setItem("plants", JSON.stringify(plants))
+      .catch(err => alert(err.message));
+  }, [plants]);
 
   const camera = React.useRef<any>();
 
