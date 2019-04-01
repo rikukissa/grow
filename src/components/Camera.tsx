@@ -29,6 +29,16 @@ export const Camera = React.forwardRef<any, Props>(function(
   props: React.PropsWithChildren<{}>,
   ref
 ) {
+  const [aspectRatio, setAspectRatio] = React.useState(9 / 16);
+
+  const getAspectRatio = () => {
+    const videoElement: HTMLVideoElement = (ref as any).current.video;
+    const settings = (videoElement.srcObject as MediaStream)
+      .getVideoTracks()[0]
+      .getSettings();
+    setAspectRatio((settings.height as number) / (settings.width as number));
+  };
+
   const [sized] = useSize(({ width, height }) => {
     if (width === Infinity) {
       return <div />;
@@ -38,8 +48,9 @@ export const Camera = React.forwardRef<any, Props>(function(
       <Container>
         <Webcam
           width={width}
-          height={width * (16 / 9)}
+          height={width * aspectRatio}
           audio={false}
+          onUserMedia={getAspectRatio}
           style={{ display: "block" }}
           ref={ref}
           screenshotQuality={1}

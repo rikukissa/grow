@@ -53,7 +53,10 @@ function Rotator(props: { pictures: IPicture[] }) {
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
-    const interval = window.setInterval(() => setTick(tick + 1), 1000);
+    const interval = window.setInterval(
+      () => setTick(tick + 1),
+      5000 / props.pictures.length
+    );
     return () => {
       window.clearInterval(interval);
     };
@@ -147,10 +150,6 @@ export function App() {
       );
 
       setPlants(storedPlants);
-
-      if (storedPlants.length > 0) {
-        setSelectedPlantId(storedPlants[0].id);
-      }
     }
     getStoredPlants();
   }, []);
